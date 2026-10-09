@@ -1,0 +1,937 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#f7f6ef">
+  <title>TontineChain — Épargnez ensemble</title>
+
+  <script src="https://cdn.jsdelivr.net/npm/ethers@6.13.4/dist/ethers.umd.min.js"></script>
+
+  <style>
+    :root {
+      color-scheme: light;
+      --bg: #f7f6ef;
+      --surface: #ffffff;
+      --surface-soft: #f9faf7;
+      --green: #0b4937;
+      --green-dark: #083c2e;
+      --green-light: #e7f0eb;
+      --gold: #dfc46d;
+      --gold-dark: #c9aa4e;
+      --text: #18362d;
+      --muted: #89938d;
+      --border: #e9ece6;
+      --danger: #b84242;
+      --shadow: 0 18px 55px rgba(31, 55, 44, .08);
+      --radius: 24px;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      padding: 36px 20px;
+      background:
+        radial-gradient(circle at 15% 15%, rgba(223,196,109,.13), transparent 28%),
+        var(--bg);
+      color: var(--text);
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+
+    button, input { font: inherit; }
+    button { -webkit-tap-highlight-color: transparent; }
+
+    .app {
+      width: min(100%, 1040px);
+      margin: 0 auto;
+      padding: 24px;
+      background: rgba(255,255,255,.88);
+      border: 1px solid rgba(255,255,255,.9);
+      border-radius: 30px;
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(12px);
+    }
+
+    .topbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      padding: 0 4px 22px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 11px;
+      color: var(--green);
+      font-weight: 750;
+      letter-spacing: -.03em;
+    }
+
+    .brand-mark {
+      display: grid;
+      width: 38px;
+      height: 38px;
+      place-items: center;
+      border-radius: 13px;
+      background: var(--green);
+      color: #fff;
+      font-size: 19px;
+    }
+
+    .brand-name { font-size: 17px; }
+
+    .top-actions {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .network {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 600;
+    }
+
+    .network-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: #39a878;
+      box-shadow: 0 0 0 4px rgba(57,168,120,.12);
+    }
+
+    .hero {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 30px;
+      align-items: center;
+      padding: 30px 4px 28px;
+    }
+
+    .hero-copy h1 {
+      max-width: 440px;
+      margin: 0;
+      color: var(--green);
+      font-family: Georgia, "Times New Roman", serif;
+      font-size: clamp(38px, 5vw, 58px);
+      font-weight: 600;
+      line-height: .99;
+      letter-spacing: -.045em;
+    }
+
+    .hero-copy p {
+      max-width: 430px;
+      margin: 15px 0 22px;
+      color: var(--muted);
+      font-size: 14px;
+      line-height: 1.7;
+    }
+
+    .hero-buttons {
+      display: flex;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+
+    .balance-card {
+      position: relative;
+      min-height: 190px;
+      overflow: hidden;
+      padding: 25px;
+      border-radius: 22px;
+      background: linear-gradient(135deg, #0b4937, #0b3f31);
+      color: #fff;
+      box-shadow: 0 14px 30px rgba(11,73,55,.17);
+    }
+
+    .balance-card::after {
+      position: absolute;
+      right: -52px;
+      bottom: -92px;
+      width: 230px;
+      height: 230px;
+      border: 1px solid rgba(255,255,255,.08);
+      border-radius: 50%;
+      content: "";
+    }
+
+    .balance-label {
+      color: rgba(255,255,255,.72);
+      font-size: 13px;
+      font-weight: 550;
+    }
+
+    .balance-value {
+      margin-top: 7px;
+      font-size: clamp(30px, 4vw, 42px);
+      font-weight: 650;
+      letter-spacing: -.04em;
+    }
+
+    .balance-bottom {
+      display: flex;
+      align-items: end;
+      justify-content: space-between;
+      gap: 12px;
+      margin-top: 20px;
+    }
+
+    .balance-note {
+      color: rgba(255,255,255,.62);
+      font-size: 11px;
+    }
+
+    .sparkline {
+      width: 120px;
+      height: 45px;
+      opacity: .8;
+    }
+
+    .sparkline path {
+      fill: rgba(255,255,255,.08);
+      stroke: rgba(255,255,255,.42);
+      stroke-width: 1.5;
+    }
+
+    .button {
+      display: inline-flex;
+      min-height: 42px;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      padding: 0 17px;
+      border: 1px solid transparent;
+      border-radius: 13px;
+      background: var(--green);
+      color: #fff;
+      cursor: pointer;
+      font-size: 13px;
+      font-weight: 650;
+      transition: transform .18s ease, background .18s ease, box-shadow .18s ease;
+    }
+
+    .button:hover {
+      transform: translateY(-1px);
+      background: var(--green-dark);
+      box-shadow: 0 7px 18px rgba(11,73,55,.14);
+    }
+
+    .button:disabled {
+      cursor: wait;
+      opacity: .65;
+      transform: none;
+    }
+
+    .button.gold {
+      background: var(--gold);
+      color: #26392f;
+    }
+
+    .button.gold:hover { background: var(--gold-dark); }
+
+    .button.outline {
+      border-color: var(--border);
+      background: #fff;
+      color: var(--text);
+    }
+
+    .button.outline:hover { background: var(--surface-soft); }
+
+    .button.small {
+      min-height: 36px;
+      padding: 0 12px;
+      border-radius: 11px;
+      font-size: 12px;
+    }
+
+    .status-message {
+      display: none;
+      margin: 0 4px 18px;
+      padding: 12px 14px;
+      border: 1px solid var(--border);
+      border-radius: 13px;
+      background: var(--surface-soft);
+      color: var(--text);
+      font-size: 13px;
+      line-height: 1.5;
+    }
+
+    .status-message.visible { display: block; }
+    .status-message.error {
+      border-color: #f0d4d4;
+      background: #fff7f7;
+      color: var(--danger);
+    }
+
+    .section-heading {
+      display: flex;
+      align-items: end;
+      justify-content: space-between;
+      gap: 16px;
+      margin: 0 4px 14px;
+    }
+
+    .section-heading h2 {
+      margin: 0;
+      color: var(--green);
+      font-size: 19px;
+      letter-spacing: -.025em;
+    }
+
+    .section-heading p {
+      margin: 5px 0 0;
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .create-card {
+      margin: 0 0 28px;
+      padding: 21px;
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      background: var(--surface-soft);
+    }
+
+    .form-grid {
+      display: grid;
+      grid-template-columns: 1.15fr 1fr 1fr auto;
+      gap: 11px;
+      align-items: end;
+    }
+
+    .field label {
+      display: block;
+      margin: 0 0 7px 2px;
+      color: #66736c;
+      font-size: 11px;
+      font-weight: 650;
+    }
+
+    .input-wrap { position: relative; }
+
+    .input-wrap input {
+      width: 100%;
+      height: 44px;
+      padding: 0 42px 0 13px;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      outline: none;
+      background: #fff;
+      color: var(--text);
+      transition: border-color .18s, box-shadow .18s;
+    }
+
+    .input-wrap input:focus {
+      border-color: #9cb9a9;
+      box-shadow: 0 0 0 3px rgba(11,73,55,.08);
+    }
+
+    .input-suffix {
+      position: absolute;
+      top: 50%;
+      right: 12px;
+      transform: translateY(-50%);
+      color: var(--muted);
+      font-size: 11px;
+      pointer-events: none;
+    }
+
+    .helper {
+      margin: 13px 2px 0;
+      color: var(--muted);
+      font-size: 11px;
+      line-height: 1.55;
+    }
+
+    .circles-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 14px;
+    }
+
+    .circle-card {
+      min-width: 0;
+      padding: 18px;
+      border: 1px solid var(--border);
+      border-radius: 19px;
+      background: #fff;
+      transition: transform .18s ease, box-shadow .18s ease;
+    }
+
+    .circle-card:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 10px 25px rgba(31,55,44,.06);
+    }
+
+    .circle-top {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 12px;
+    }
+
+    .circle-title {
+      margin: 0;
+      color: var(--green);
+      font-size: 15px;
+      font-weight: 750;
+    }
+
+    .circle-amount {
+      margin-top: 5px;
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      padding: 5px 9px;
+      border-radius: 99px;
+      background: var(--green-light);
+      color: var(--green);
+      font-size: 10px;
+      font-weight: 700;
+      white-space: nowrap;
+    }
+
+    .badge.open { background: #f5efd9; color: #80671f; }
+    .badge.done { background: #edf0ed; color: #66736c; }
+    .badge.member { background: #e8f3ed; color: #28734f; }
+
+    .progress-area { margin: 17px 0 13px; }
+
+    .progress-label {
+      display: flex;
+      justify-content: space-between;
+      gap: 10px;
+      margin-bottom: 7px;
+      color: var(--muted);
+      font-size: 11px;
+    }
+
+    .progress-track {
+      height: 6px;
+      overflow: hidden;
+      border-radius: 99px;
+      background: #edf0ec;
+    }
+
+    .progress-fill {
+      height: 100%;
+      border-radius: inherit;
+      background: var(--gold);
+    }
+
+    .circle-details {
+      display: grid;
+      gap: 8px;
+      padding-top: 12px;
+      border-top: 1px solid var(--border);
+      color: #68756e;
+      font-size: 11px;
+      line-height: 1.5;
+    }
+
+    .detail-row {
+      display: flex;
+      justify-content: space-between;
+      gap: 10px;
+    }
+
+    .detail-row strong {
+      color: var(--text);
+      font-weight: 650;
+      text-align: right;
+      overflow-wrap: anywhere;
+    }
+
+    .circle-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 15px;
+    }
+
+    .empty-state {
+      grid-column: 1 / -1;
+      padding: 35px 20px;
+      border: 1px dashed #dce3dc;
+      border-radius: 18px;
+      color: var(--muted);
+      text-align: center;
+      font-size: 13px;
+      line-height: 1.6;
+    }
+
+    .empty-icon {
+      display: block;
+      margin-bottom: 8px;
+      font-size: 25px;
+    }
+
+    .footer {
+      margin: 24px 4px 2px;
+      color: var(--muted);
+      font-size: 10px;
+      text-align: center;
+    }
+
+    @media (max-width: 720px) {
+      body { padding: 16px 12px; }
+      .app { padding: 17px; border-radius: 24px; }
+      .hero { grid-template-columns: 1fr; gap: 22px; padding-top: 25px; }
+      .balance-card { min-height: 170px; }
+      .form-grid { grid-template-columns: 1fr 1fr; }
+      .form-grid .button { grid-column: 1 / -1; }
+      .circles-grid { grid-template-columns: 1fr; }
+    }
+
+    @media (max-width: 460px) {
+      .topbar { align-items: flex-start; }
+      .top-actions { flex-direction: column-reverse; align-items: flex-end; gap: 8px; }
+      .network { font-size: 10px; }
+      .top-actions .button { min-height: 38px; padding: 0 12px; }
+      .form-grid { grid-template-columns: 1fr; }
+      .form-grid .button { grid-column: auto; }
+      .section-heading { align-items: flex-start; flex-direction: column; }
+      .circle-top { flex-direction: column; }
+    }
+  </style>
+</head>
+
+<body>
+  <main class="app">
+    <header class="topbar">
+      <div class="brand">
+        <span class="brand-mark" aria-hidden="true">🤝</span>
+        <span class="brand-name">TontineChain</span>
+      </div>
+
+      <div class="top-actions">
+        <span class="network"><span class="network-dot"></span> Sepolia Testnet</span>
+        <button class="button" id="connectBtn">Connecter MetaMask</button>
+      </div>
+    </header>
+
+    <section class="hero">
+      <div class="hero-copy">
+        <h1>Épargnez<br>ensemble.</h1>
+        <p>
+          Une tontine transparente et sécurisée par smart contract.
+          Cotisez à chaque tour et recevez la cagnotte à votre tour.
+        </p>
+        <div class="hero-buttons">
+          <button class="button gold" id="heroCreateBtn">Créer un cercle <span aria-hidden="true">↗</span></button>
+          <a class="button outline" href="cercles.html">Explorer les cercles</a>
+        </div>
+      </div>
+
+      <div class="balance-card">
+        <div class="balance-label">Solde disponible</div>
+        <div class="balance-value" id="balanceValue">— ETH</div>
+        <div class="balance-bottom">
+          <div>
+            <button class="button gold small" id="withdrawBtn" style="display:none">Retirer mes fonds</button>
+            <div class="balance-note" id="balanceNote">Connectez votre portefeuille pour commencer</div>
+          </div>
+          <svg class="sparkline" viewBox="0 0 120 45" aria-hidden="true">
+            <path d="M1 38 C15 37 18 31 28 33 S43 29 52 30 S67 12 77 18 S91 25 100 17 S111 12 119 6 L119 45 L1 45 Z"></path>
+          </svg>
+        </div>
+      </div>
+    </section>
+
+    <div id="msg" class="status-message" role="status" aria-live="polite"></div>
+
+    <section id="createSection">
+      <div class="section-heading">
+        <div>
+          <h2>Créer un cercle</h2>
+          <p>Définissez les règles de votre prochaine tontine.</p>
+        </div>
+      </div>
+
+      <div class="create-card">
+        <form id="createForm" class="form-grid">
+          <div class="field">
+            <label for="cContribution">Cotisation par tour</label>
+            <div class="input-wrap">
+              <input id="cContribution" type="number" step="any" min="0" placeholder="0.05" required>
+              <span class="input-suffix">ETH</span>
+            </div>
+          </div>
+
+          <div class="field">
+            <label for="cMembers">Nombre de membres</label>
+            <div class="input-wrap">
+              <input id="cMembers" type="number" min="2" max="20" placeholder="5" required>
+              <span class="input-suffix">membres</span>
+            </div>
+          </div>
+
+          <div class="field">
+            <label for="cMinutes">Durée d’un tour</label>
+            <div class="input-wrap">
+              <input id="cMinutes" type="number" min="1" placeholder="1440" required>
+              <span class="input-suffix">min</span>
+            </div>
+          </div>
+
+          <button class="button" id="createBtn" type="submit">Créer le cercle <span aria-hidden="true">→</span></button>
+        </form>
+        <p class="helper">
+          Chaque membre dépose une garantie égale à une cotisation. Elle est récupérable à la fin du cycle.
+        </p>
+      </div>
+    </section>
+
+    <section id="circlesSection">
+      <div class="section-heading">
+        <div>
+          <h2>Les cercles</h2>
+          <p>Suivez les tontines disponibles et vos cotisations.</p>
+        </div>
+        <span class="network" id="circleCount"></span>
+      </div>
+
+      <div id="circles" class="circles-grid">
+        <div class="empty-state">
+          <span class="empty-icon">🌱</span>
+          Connectez MetaMask pour afficher les cercles disponibles.
+        </div>
+      </div>
+    </section>
+
+    <footer class="footer">
+      Application de démonstration sur Sepolia. Vérifiez toujours les détails d’une transaction avant de la signer.
+    </footer>
+  </main>
+
+  <script>
+    // Remplacez par l'adresse de votre contrat déployé.
+    const CONTRACT_ADDRESS = "0x17B1Df4a828d9e172099d5D6FE648101fEF9A0A6";
+
+    const ABI = [
+      "function circlesCount() view returns (uint256)",
+      "function membersCount(uint256) view returns (uint256)",
+      "function circles(uint256) view returns (address creator, uint256 contribution, uint256 maxMembers, uint256 roundDuration, uint256 currentRound, uint256 roundDeadline, uint8 status)",
+      "function members(uint256, uint256) view returns (address)",
+      "function isMember(uint256, address) view returns (bool)",
+      "function guarantee(uint256, address) view returns (uint256)",
+      "function paid(uint256, uint256, address) view returns (bool)",
+      "function paidCount(uint256, uint256) view returns (uint256)",
+      "function pending(address) view returns (uint256)",
+      "function createCircle(uint256 contribution, uint256 maxMembers, uint256 roundDuration) returns (uint256)",
+      "function join(uint256 id) payable",
+      "function leave(uint256 id)",
+      "function contribute(uint256 id) payable",
+      "function closeRound(uint256 id)",
+      "function claimGuarantee(uint256 id)",
+      "function withdraw()"
+    ];
+
+    const STATUS = ["Ouvert", "En cours", "Terminé"];
+    const $ = id => document.getElementById(id);
+
+    let contract;
+    let me;
+
+    function shortAddress(address) {
+      return address.slice(0, 6) + "…" + address.slice(-4);
+    }
+
+    function say(message, ok = true) {
+      const box = $("msg");
+      box.textContent = message;
+      box.classList.add("visible");
+      box.classList.toggle("error", !ok);
+    }
+
+    function clearMessage() {
+      $("msg").textContent = "";
+      $("msg").classList.remove("visible", "error");
+    }
+
+    function showEmpty(message, icon = "🌱") {
+      $("circles").innerHTML = `
+        <div class="empty-state">
+          <span class="empty-icon">${icon}</span>
+          ${message}
+        </div>`;
+      $("circleCount").textContent = "";
+    }
+
+    async function connectWallet() {
+      if (!window.ethereum) {
+        say("MetaMask n’a pas été détecté. Installez l’extension, puis réessayez.", false);
+        return;
+      }
+
+      try {
+        await window.ethereum.request({
+          method: "wallet_switchEthereumChain",
+          params: [{ chainId: "0xaa36a7" }]
+        });
+      } catch (error) {
+        if (error.code === 4902) {
+          say("Le réseau Sepolia n’est pas ajouté à MetaMask. Ajoutez-le, puis réessayez.", false);
+          return;
+        }
+        if (error.code === 4001) {
+          say("Changement de réseau refusé dans MetaMask.", false);
+          return;
+        }
+        throw error;
+      }
+
+      try {
+        const accounts = await window.ethereum.request({ method: "eth_requestAccounts" });
+        if (!accounts.length) {
+          say("Aucun compte MetaMask sélectionné.", false);
+          return;
+        }
+
+        const provider = new ethers.BrowserProvider(window.ethereum);
+        const signer = await provider.getSigner();
+
+        me = await signer.getAddress();
+        contract = new ethers.Contract(CONTRACT_ADDRESS, ABI, signer);
+
+        $("connectBtn").textContent = shortAddress(me);
+        $("balanceNote").textContent = "Solde retirable de votre portefeuille";
+        clearMessage();
+
+        await refresh();
+      } catch (error) {
+        say(error.shortMessage || error.message || "Connexion au portefeuille impossible.", false);
+      }
+    }
+
+    async function refresh() {
+      if (!contract || !me) return;
+
+      try {
+        const pending = await contract.pending(me);
+        const hasPending = pending > 0n;
+
+        $("balanceValue").textContent = `${Number(ethers.formatEther(pending)).toFixed(4)} ETH`;
+        $("withdrawBtn").style.display = hasPending ? "inline-flex" : "none";
+
+        const count = Number(await contract.circlesCount());
+        $("circleCount").textContent = `${count} cercle${count === 1 ? "" : "s"}`;
+
+        if (count === 0) {
+          showEmpty("Aucun cercle pour le moment. Créez le premier cercle !", "✨");
+          $("circleCount").textContent = "0 cercle";
+          return;
+        }
+
+        const now = Math.floor(Date.now() / 1000);
+        const cards = [];
+
+        for (let i = count - 1; i >= 0; i--) {
+          const c = await contract.circles(i);
+          const status = Number(c.status);
+          const round = Number(c.currentRound);
+          const maxMembers = Number(c.maxMembers);
+          const memberCount = Number(await contract.membersCount(i));
+          const isMember = await contract.isMember(i, me);
+          const contribution = ethers.formatEther(c.contribution);
+          const progress = maxMembers ? Math.min(100, (memberCount / maxMembers) * 100) : 0;
+
+          let details = "";
+          let actions = "";
+          let progressText = `${memberCount} / ${maxMembers} membres`;
+
+          if (status === 0) {
+            details = `
+              <div class="detail-row"><span>État du cercle</span><strong>En attente de membres</strong></div>
+              <div class="detail-row"><span>Garantie requise</span><strong>${contribution} ETH</strong></div>`;
+
+            actions = isMember
+              ? `<button class="button outline small" data-act="leave" data-id="${i}">Quitter le cercle</button>`
+              : `<button class="button small" data-act="join" data-id="${i}" data-amount="${c.contribution}">Rejoindre · garantie ${contribution} ETH</button>`;
+          } else if (status === 1) {
+            const beneficiary = await contract.members(i, round);
+            const paidCount = Number(await contract.paidCount(i, round));
+            const alreadyPaid = isMember && await contract.paid(i, round, me);
+            const deadline = Number(c.roundDeadline);
+            const isLate = now > deadline;
+            const deadlineText = new Date(deadline * 1000).toLocaleString("fr-FR", {
+              dateStyle: "medium",
+              timeStyle: "short"
+            });
+
+            progressText = `Tour ${round + 1} / ${maxMembers} · ${paidCount} / ${maxMembers} cotisations`;
+
+            details = `
+              <div class="detail-row"><span>Bénéficiaire du tour</span><strong>${shortAddress(beneficiary)}${beneficiary.toLowerCase() === me.toLowerCase() ? " (vous)" : ""}</strong></div>
+              <div class="detail-row"><span>Échéance</span><strong>${deadlineText}</strong></div>`;
+
+            if (isMember && !alreadyPaid && !isLate) {
+              actions += `<button class="button small" data-act="contribute" data-id="${i}" data-amount="${c.contribution}">Cotiser ${contribution} ETH</button>`;
+            } else if (isMember && alreadyPaid) {
+              actions += `<span class="badge member">Cotisation payée</span>`;
+            }
+
+            if (paidCount === maxMembers || isLate) {
+              actions += `<button class="button outline small" data-act="close" data-id="${i}">Clôturer le tour</button>`;
+            }
+          } else {
+            details = `
+              <div class="detail-row"><span>État du cycle</span><strong>Le cercle est terminé</strong></div>
+              <div class="detail-row"><span>Membres</span><strong>${memberCount} / ${maxMembers}</strong></div>`;
+
+            if (isMember && (await contract.guarantee(i, me)) > 0n) {
+              actions = `<button class="button small" data-act="claim" data-id="${i}">Récupérer ma garantie</button>`;
+            }
+          }
+
+          const statusClass = status === 0 ? "open" : status === 2 ? "done" : "";
+          const memberBadge = isMember ? `<span class="badge member">Membre</span>` : "";
+
+          cards.push(`
+            <article class="circle-card">
+              <div class="circle-top">
+                <div>
+                  <h3 class="circle-title">Cercle #${i}</h3>
+                  <div class="circle-amount">${contribution} ETH <span aria-hidden="true">/</span> tour</div>
+                </div>
+                <div style="display:flex;gap:6px;flex-wrap:wrap">
+                  <span class="badge ${statusClass}">${STATUS[status] || "Inconnu"}</span>
+                  ${memberBadge}
+                </div>
+              </div>
+
+              <div class="progress-area">
+                <div class="progress-label">
+                  <span>${progressText}</span>
+                  <span>${Math.round(progress)}%</span>
+                </div>
+                <div class="progress-track">
+                  <div class="progress-fill" style="width:${progress}%"></div>
+                </div>
+              </div>
+
+              <div class="circle-details">${details}</div>
+              ${actions ? `<div class="circle-actions">${actions}</div>` : ""}
+            </article>
+          `);
+        }
+
+        $("circles").innerHTML = cards.join("");
+      } catch (error) {
+        say(error.shortMessage || error.message || "Impossible de charger les cercles.", false);
+      }
+    }
+
+    async function run(label, transactionFn) {
+      if (!contract) {
+        say("Connectez MetaMask avant de continuer.", false);
+        return;
+      }
+
+      const buttons = document.querySelectorAll("button");
+      buttons.forEach(button => button.disabled = true);
+
+      try {
+        say(`${label} : confirmez la transaction dans MetaMask…`);
+        const tx = await transactionFn();
+        say("Transaction envoyée. En attente de confirmation…");
+        await tx.wait();
+        say("Transaction confirmée avec succès.");
+        await refresh();
+      } catch (error) {
+        if (error.code === 4001 || error.code === "ACTION_REJECTED") {
+          say("Transaction refusée dans MetaMask.", false);
+        } else {
+          say(error.shortMessage || error.reason || error.message || "La transaction a échoué.", false);
+        }
+      } finally {
+        buttons.forEach(button => button.disabled = false);
+      }
+    }
+
+    $("connectBtn").addEventListener("click", connectWallet);
+
+    $("createForm").addEventListener("submit", event => {
+      event.preventDefault();
+
+      if (!contract) {
+        say("Connectez-vous à MetaMask avant de créer un cercle.", false);
+        return;
+      }
+
+      const amount = $("cContribution").value.trim();
+      const members = Number($("cMembers").value);
+      const minutes = Number($("cMinutes").value);
+
+      if (!amount || Number(amount) <= 0 || !Number.isInteger(members) || members < 2 || members > 20 || !Number.isInteger(minutes) || minutes < 1) {
+        say("Vérifiez les champs : cotisation positive, 2 à 20 membres et durée d’au moins 1 minute.", false);
+        return;
+      }
+
+      run("Création du cercle", () =>
+        contract.createCircle(
+          ethers.parseEther(amount),
+          members,
+          minutes * 60
+        )
+      );
+    });
+
+    $("withdrawBtn").addEventListener("click", () => {
+      run("Retrait", () => contract.withdraw());
+    });
+
+    $("heroCreateBtn").addEventListener("click", () => {
+      $("createSection").scrollIntoView({ behavior: "smooth", block: "start" });
+      $("cContribution").focus({ preventScroll: true });
+    });
+
+    
+
+    document.addEventListener("click", event => {
+      const button = event.target.closest("button[data-act]");
+      if (!button || !contract) return;
+
+      const id = button.dataset.id;
+      const amount = button.dataset.amount ? BigInt(button.dataset.amount) : 0n;
+
+      switch (button.dataset.act) {
+        case "join":
+          return run("Adhésion au cercle", () => contract.join(id, { value: amount }));
+        case "leave":
+          return run("Sortie du cercle", () => contract.leave(id));
+        case "contribute":
+          return run("Cotisation", () => contract.contribute(id, { value: amount }));
+        case "close":
+          return run("Clôture du tour", () => contract.closeRound(id));
+        case "claim":
+          return run("Récupération de la garantie", () => contract.claimGuarantee(id));
+      }
+    });
+
+    if (window.ethereum) {
+      window.ethereum.on("accountsChanged", () => window.location.reload());
+      window.ethereum.on("chainChanged", () => window.location.reload());
+
+      window.ethereum.request({ method: "eth_accounts" })
+        .then(accounts => {
+          if (accounts && accounts.length) connectWallet();
+        })
+        .catch(() => {});
+    }
+  </script>
+</body>
+</html>

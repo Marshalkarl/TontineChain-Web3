@@ -1,0 +1,710 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#f7f6ef">
+  <title>Explorer les cercles — TontineChain</title>
+
+  <script src="https://cdn.jsdelivr.net/npm/ethers@6.13.4/dist/ethers.umd.min.js"></script>
+
+  <style>
+    :root {
+      --bg: #f7f6ef;
+      --surface: #fff;
+      --green: #0b4937;
+      --green-dark: #083c2e;
+      --green-light: #e7f0eb;
+      --gold: #dfc46d;
+      --text: #18362d;
+      --muted: #89938d;
+      --border: #e9ece6;
+      --danger: #b84242;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      padding: 32px 18px;
+      background: var(--bg);
+      color: var(--text);
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+
+    button, a { font: inherit; }
+
+    .app {
+      width: min(100%, 1000px);
+      margin: auto;
+      padding: 24px;
+      border: 1px solid #fff;
+      border-radius: 28px;
+      background: rgba(255,255,255,.9);
+      box-shadow: 0 18px 55px rgba(31,55,44,.08);
+    }
+
+    .topbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 14px;
+      padding-bottom: 20px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      color: var(--green);
+      font-weight: 750;
+      text-decoration: none;
+    }
+
+    .brand-mark {
+      display: grid;
+      width: 38px;
+      height: 38px;
+      place-items: center;
+      border-radius: 13px;
+      background: var(--green);
+      color: white;
+    }
+
+    .button {
+      display: inline-flex;
+      min-height: 42px;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      padding: 0 15px;
+      border: 1px solid transparent;
+      border-radius: 12px;
+      background: var(--green);
+      color: white;
+      cursor: pointer;
+      font-size: 13px;
+      font-weight: 650;
+      text-decoration: none;
+    }
+
+    .button:hover { background: var(--green-dark); }
+    .button:disabled { opacity: .6; cursor: wait; }
+
+    .button.outline {
+      border-color: var(--border);
+      background: white;
+      color: var(--text);
+    }
+
+    .button.outline:hover { background: #f8faf7; }
+
+    .intro {
+      display: flex;
+      align-items: end;
+      justify-content: space-between;
+      gap: 16px;
+      padding: 30px 2px 22px;
+    }
+
+    h1 {
+      margin: 0;
+      color: var(--green);
+      font-family: Georgia, "Times New Roman", serif;
+      font-size: clamp(34px, 5vw, 48px);
+      font-weight: 600;
+      letter-spacing: -.04em;
+    }
+
+    .intro p {
+      margin: 9px 0 0;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.6;
+    }
+
+    .toolbar {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 15px;
+    }
+
+    .toolbar-note {
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .message {
+      display: none;
+      margin-bottom: 16px;
+      padding: 12px 14px;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      background: #f9faf7;
+      font-size: 13px;
+      line-height: 1.5;
+    }
+
+    .message.visible { display: block; }
+
+    .message.error {
+      border-color: #f0d4d4;
+      background: #fff7f7;
+      color: var(--danger);
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 14px;
+    }
+
+    .card {
+      padding: 18px;
+      border: 1px solid var(--border);
+      border-radius: 18px;
+      background: var(--surface);
+    }
+
+    .card-top {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 12px;
+    }
+
+    .card h2 {
+      margin: 0;
+      color: var(--green);
+      font-size: 15px;
+    }
+
+    .amount {
+      margin-top: 5px;
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .badge {
+      display: inline-flex;
+      padding: 5px 9px;
+      border-radius: 99px;
+      background: var(--green-light);
+      color: var(--green);
+      font-size: 10px;
+      font-weight: 700;
+      white-space: nowrap;
+    }
+
+    .badge.open { background: #f5efd9; color: #80671f; }
+    .badge.done { background: #edf0ed; color: #66736c; }
+
+    .progress-area { margin: 17px 0 13px; }
+
+    .progress-label {
+      display: flex;
+      justify-content: space-between;
+      gap: 10px;
+      margin-bottom: 7px;
+      color: var(--muted);
+      font-size: 11px;
+    }
+
+    .track {
+      height: 6px;
+      overflow: hidden;
+      border-radius: 99px;
+      background: #edf0ec;
+    }
+
+    .fill {
+      height: 100%;
+      border-radius: inherit;
+      background: var(--gold);
+    }
+
+    .details {
+      display: grid;
+      gap: 8px;
+      padding-top: 12px;
+      border-top: 1px solid var(--border);
+      color: #68756e;
+      font-size: 11px;
+    }
+
+    .row {
+      display: flex;
+      justify-content: space-between;
+      gap: 10px;
+    }
+
+    .row strong {
+      color: var(--text);
+      text-align: right;
+      overflow-wrap: anywhere;
+    }
+
+    .actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 15px;
+    }
+
+    .small {
+      min-height: 36px;
+      padding: 0 12px;
+      border-radius: 10px;
+      font-size: 12px;
+    }
+
+    .empty {
+      grid-column: 1 / -1;
+      padding: 36px 20px;
+      border: 1px dashed #dce3dc;
+      border-radius: 18px;
+      color: var(--muted);
+      text-align: center;
+      font-size: 13px;
+      line-height: 1.6;
+    }
+
+    .footer {
+      margin-top: 24px;
+      color: var(--muted);
+      font-size: 10px;
+      text-align: center;
+    }
+
+    @media (max-width: 650px) {
+      body { padding: 14px 10px; }
+      .app { padding: 17px; }
+      .grid { grid-template-columns: 1fr; }
+      .intro { align-items: flex-start; flex-direction: column; }
+      .topbar { align-items: flex-start; }
+    }
+
+    .members {
+  margin-top: 14px;
+  border-top: 1px solid var(--border);
+}
+
+.members summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 13px 0 2px;
+  color: var(--green);
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 650;
+  list-style: none;
+}
+
+.members summary::-webkit-details-marker {
+  display: none;
+}
+
+.members summary::after {
+  margin-left: auto;
+  padding-left: 8px;
+  color: var(--muted);
+  content: "＋";
+}
+
+.members[open] summary::after {
+  content: "−";
+}
+
+.members-count {
+  margin-left: 8px;
+  padding: 3px 7px;
+  border-radius: 99px;
+  background: var(--green-light);
+  color: var(--green);
+  font-size: 10px;
+}
+
+.members-list {
+  display: grid;
+  gap: 8px;
+  padding: 12px 0 2px;
+}
+
+.member-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  color: var(--muted);
+  font-size: 11px;
+}
+
+.member-address {
+  color: var(--text);
+  font-weight: 600;
+}
+
+.you-badge {
+  margin-left: 5px;
+  padding: 2px 6px;
+  border-radius: 99px;
+  background: var(--green-light);
+  color: var(--green);
+  font-size: 9px;
+}
+
+.no-members {
+  padding: 10px 0 2px;
+  color: var(--muted);
+  font-size: 11px;
+}
+  </style>
+</head>
+
+<body>
+  <main class="app">
+    <header class="topbar">
+      <a class="brand" href="index.html">
+        <span class="brand-mark">🤝</span>
+        <span>TontineChain</span>
+      </a>
+
+      <button class="button" id="connectBtn">Connecter MetaMask</button>
+    </header>
+
+    <section class="intro">
+      <div>
+        <h1>Explorer les cercles</h1>
+        <p>Consultez les tontines disponibles et rejoignez un cercle sur Sepolia.</p>
+      </div>
+      <a class="button outline" href="index.html">← Retour à l’accueil</a>
+    </section>
+
+    <div id="message" class="message" role="status" aria-live="polite"></div>
+
+    <div class="toolbar">
+      <span class="toolbar-note" id="countLabel">Connectez MetaMask pour charger les cercles.</span>
+      <button class="button outline small" id="refreshBtn">Actualiser</button>
+    </div>
+
+    <section id="circles" class="grid">
+      <div class="empty">Connectez MetaMask pour afficher les cercles.</div>
+    </section>
+
+    <footer class="footer">
+      Application de démonstration sur Sepolia. Vérifiez les transactions avant de les signer.
+    </footer>
+  </main>
+
+  <script>
+    // Utilisez la même adresse de contrat que dans index.html.
+    const CONTRACT_ADDRESS = "0x17B1Df4a828d9e172099d5D6FE648101fEF9A0A6";
+
+    const ABI = [
+      "function circlesCount() view returns (uint256)",
+      "function membersCount(uint256) view returns (uint256)",
+      "function circles(uint256) view returns (address creator, uint256 contribution, uint256 maxMembers, uint256 roundDuration, uint256 currentRound, uint256 roundDeadline, uint8 status)",
+      "function members(uint256, uint256) view returns (address)",
+      "function isMember(uint256, address) view returns (bool)",
+      "function guarantee(uint256, address) view returns (uint256)",
+      "function paid(uint256, uint256, address) view returns (bool)",
+      "function paidCount(uint256, uint256) view returns (uint256)",
+      "function pending(address) view returns (uint256)",
+      "function join(uint256 id) payable",
+      "function leave(uint256 id)",
+      "function contribute(uint256 id) payable",
+      "function closeRound(uint256 id)",
+      "function claimGuarantee(uint256 id)",
+      "function withdraw()"
+    ];
+
+    const STATUS = ["Ouvert", "En cours", "Terminé"];
+    let contract;
+    let account;
+
+    const $ = id => document.getElementById(id);
+
+    function shortAddress(address) {
+      return address.slice(0, 6) + "…" + address.slice(-4);
+    }
+
+    function showMessage(text, isError = false) {
+      const el = $("message");
+      el.textContent = text;
+      el.classList.add("visible");
+      el.classList.toggle("error", isError);
+    }
+
+    function showEmpty(text) {
+      $("circles").innerHTML = `<div class="empty">${text}</div>`;
+    }
+
+    async function connect() {
+      if (!window.ethereum) {
+        showMessage("MetaMask n’a pas été détecté. Installez l’extension puis réessayez.", true);
+        return;
+      }
+
+      try {
+        await window.ethereum.request({
+          method: "wallet_switchEthereumChain",
+          params: [{ chainId: "0xaa36a7" }]
+        });
+      } catch (error) {
+        if (error.code === 4902) {
+          showMessage("Ajoutez le réseau Sepolia dans MetaMask, puis réessayez.", true);
+          return;
+        }
+        if (error.code === 4001) {
+          showMessage("Changement de réseau refusé.", true);
+          return;
+        }
+        showMessage(error.message || "Impossible de changer de réseau.", true);
+        return;
+      }
+
+      try {
+        const accounts = await window.ethereum.request({
+          method: "eth_requestAccounts"
+        });
+
+        if (!accounts.length) {
+          showMessage("Aucun compte MetaMask sélectionné.", true);
+          return;
+        }
+
+        const provider = new ethers.BrowserProvider(window.ethereum);
+        const signer = await provider.getSigner();
+
+        account = await signer.getAddress();
+        contract = new ethers.Contract(CONTRACT_ADDRESS, ABI, signer);
+
+        $("connectBtn").textContent = shortAddress(account);
+        $("message").classList.remove("visible", "error");
+
+        await loadCircles();
+      } catch (error) {
+        showMessage(error.shortMessage || error.message || "Connexion impossible.", true);
+      }
+    }
+
+    async function loadCircles() {
+      if (!contract || !account) {
+        showMessage("Connectez MetaMask pour charger les cercles.", true);
+        return;
+      }
+
+      $("refreshBtn").disabled = true;
+      $("countLabel").textContent = "Chargement des cercles…";
+
+      try {
+        const count = Number(await contract.circlesCount());
+
+        if (count === 0) {
+          $("countLabel").textContent = "Aucun cercle disponible.";
+          showEmpty("Aucun cercle pour le moment.");
+          return;
+        }
+
+        const now = Math.floor(Date.now() / 1000);
+        const cards = [];
+
+        for (let i = count - 1; i >= 0; i--) {
+          const c = await contract.circles(i);
+          const status = Number(c.status);
+          const round = Number(c.currentRound);
+          const maxMembers = Number(c.maxMembers);
+          const memberCount = Number(await contract.membersCount(i));
+          const memberAddresses = [];
+
+        for (let memberIndex = 0; memberIndex < memberCount; memberIndex++) {
+          memberAddresses.push(await contract.members(i, memberIndex));
+        }
+
+        const membersHtml = memberAddresses.length
+             ? memberAddresses.map((address, index) => `
+               <div class="member-row">
+                 <span class="member-number">Membre ${index + 1}</span>
+              <span class="member-address">
+                ${shortAddress(address)}
+                ${address.toLowerCase() === account.toLowerCase() ? '<span class="you-badge">Vous</span>' : ''}
+               </span>
+             </div>
+             `).join("")
+                : `<div class="no-members">Aucun membre pour le moment.</div>`;
+          const isMember = await contract.isMember(i, account);
+
+          const contributionWei = c.contribution;
+          const contribution = ethers.formatEther(contributionWei);
+          const progress = maxMembers
+            ? Math.min(100, memberCount / maxMembers * 100)
+            : 0;
+
+          let progressText = `${memberCount} / ${maxMembers} membres`;
+          let details = "";
+          let actions = "";
+
+          if (status === 0) {
+            details = `
+              <div class="row"><span>État</span><strong>En attente de membres</strong></div>
+              <div class="row"><span>Garantie requise</span><strong>${contribution} ETH</strong></div>`;
+
+            actions = isMember
+              ? `<button class="button outline small" data-action="leave" data-id="${i}">Quitter le cercle</button>`
+              : `<button class="button small" data-action="join" data-id="${i}" data-amount="${contributionWei}">Rejoindre · ${contribution} ETH</button>`;
+          }
+
+          if (status === 1) {
+            const beneficiary = await contract.members(i, round);
+            const paidCount = Number(await contract.paidCount(i, round));
+            const alreadyPaid = isMember && await contract.paid(i, round, account);
+            const deadline = Number(c.roundDeadline);
+            const isLate = now > deadline;
+
+            const deadlineText = new Date(deadline * 1000).toLocaleString("fr-FR", {
+              dateStyle: "medium",
+              timeStyle: "short"
+            });
+
+            progressText = `Tour ${round + 1} / ${maxMembers} · ${paidCount} / ${maxMembers} cotisations`;
+
+            details = `
+              <div class="row"><span>Bénéficiaire</span><strong>${shortAddress(beneficiary)}${beneficiary.toLowerCase() === account.toLowerCase() ? " (vous)" : ""}</strong></div>
+              <div class="row"><span>Échéance</span><strong>${deadlineText}</strong></div>`;
+
+            if (isMember && !alreadyPaid && !isLate) {
+              actions += `<button class="button small" data-action="contribute" data-id="${i}" data-amount="${contributionWei}">Cotiser ${contribution} ETH</button>`;
+            } else if (isMember && alreadyPaid) {
+              actions += `<span class="badge">Cotisation payée</span>`;
+            }
+
+            if (paidCount === maxMembers || isLate) {
+              actions += `<button class="button outline small" data-action="close" data-id="${i}">Clôturer le tour</button>`;
+            }
+          }
+
+          if (status === 2) {
+            details = `
+              <div class="row"><span>État</span><strong>Cercle terminé</strong></div>
+              <div class="row"><span>Membres</span><strong>${memberCount} / ${maxMembers}</strong></div>`;
+
+            if (isMember && (await contract.guarantee(i, account)) > 0n) {
+              actions = `<button class="button small" data-action="claim" data-id="${i}">Récupérer ma garantie</button>`;
+            }
+          }
+
+          const statusClass = status === 0 ? "open" : status === 2 ? "done" : "";
+
+          cards.push(`
+            <article class="card">
+              <div class="card-top">
+                <div>
+                  <h2>Cercle #${i}</h2>
+                  <div class="amount">${contribution} ETH par tour</div>
+                </div>
+                <span class="badge ${statusClass}">${STATUS[status] || "Inconnu"}</span>
+              </div>
+
+              <div class="progress-area">
+                <div class="progress-label">
+                  <span>${progressText}</span>
+                  <span>${Math.round(progress)}%</span>
+                </div>
+                <div class="track">
+                  <div class="fill" style="width:${progress}%"></div>
+                </div>
+              </div>
+
+              <div class="details">${details}</div>
+
+                <details class="members">
+                <summary>
+                       Voir les membres
+                  <span class="members-count">${memberCount}</span>
+                     </summary>
+                 <div class="members-list">${membersHtml}</div>
+                </details>
+
+                ${actions ? `<div class="actions">${actions}</div>` : ""}
+                  </article>
+                 `);
+               }
+
+        $("countLabel").textContent = `${count} cercle${count === 1 ? "" : "s"} trouvé${count === 1 ? "" : "s"}`;
+        $("circles").innerHTML = cards.join("");
+      } catch (error) {
+        $("countLabel").textContent = "Erreur de chargement.";
+        showMessage(error.shortMessage || error.message || "Impossible de charger les cercles.", true);
+      } finally {
+        $("refreshBtn").disabled = false;
+      }
+    }
+
+    async function transact(label, callback) {
+      if (!contract) {
+        showMessage("Connectez MetaMask avant de continuer.", true);
+        return;
+      }
+
+      const buttons = document.querySelectorAll("button");
+      buttons.forEach(button => button.disabled = true);
+
+      try {
+        showMessage(`${label} : confirmez la transaction dans MetaMask.`);
+        const tx = await callback();
+        showMessage("Transaction envoyée. En attente de confirmation…");
+        await tx.wait();
+        showMessage("Transaction confirmée.");
+        await loadCircles();
+      } catch (error) {
+        if (error.code === 4001 || error.code === "ACTION_REJECTED") {
+          showMessage("Transaction refusée dans MetaMask.", true);
+        } else {
+          showMessage(error.shortMessage || error.reason || error.message || "La transaction a échoué.", true);
+        }
+      } finally {
+        buttons.forEach(button => button.disabled = false);
+      }
+    }
+
+    $("connectBtn").addEventListener("click", connect);
+    $("refreshBtn").addEventListener("click", loadCircles);
+
+    document.addEventListener("click", event => {
+      const button = event.target.closest("[data-action]");
+      if (!button) return;
+
+      const id = button.dataset.id;
+      const amount = button.dataset.amount ? BigInt(button.dataset.amount) : 0n;
+
+      switch (button.dataset.action) {
+        case "join":
+          transact("Adhésion", () => contract.join(id, { value: amount }));
+          break;
+        case "leave":
+          transact("Sortie du cercle", () => contract.leave(id));
+          break;
+        case "contribute":
+          transact("Cotisation", () => contract.contribute(id, { value: amount }));
+          break;
+        case "close":
+          transact("Clôture du tour", () => contract.closeRound(id));
+          break;
+        case "claim":
+          transact("Récupération de la garantie", () => contract.claimGuarantee(id));
+          break;
+      }
+    });
+
+    if (window.ethereum) {
+      window.ethereum.on("accountsChanged", () => window.location.reload());
+      window.ethereum.on("chainChanged", () => window.location.reload());
+    }
+  </script>
+</body>
+</html>
